@@ -2,6 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import fs from 'fs'
+import path from 'path'
+
+// Check if SSL certs exist (for local development)
+const certPath = path.resolve('.cert/key.pem')
+const certExists = fs.existsSync(certPath)
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -21,12 +26,15 @@ export default defineConfig({
       },
     }),
   ],
-  server: {
+  server: certExists ? {
     host: '0.0.0.0',
     port: 5173,
     https: {
       key: fs.readFileSync('.cert/key.pem'),
       cert: fs.readFileSync('.cert/cert.pem'),
     },
+  } : {
+    host: '0.0.0.0',
+    port: 5173,
   },
 })
