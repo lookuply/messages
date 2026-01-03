@@ -26,6 +26,24 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    alias: {
+      // Fix libsodium-wrappers ESM issues
+      'libsodium-wrappers': 'libsodium-wrappers/dist/modules/libsodium-wrappers.js',
+    },
+  },
+  optimizeDeps: {
+    exclude: ['libsodium-wrappers'],
+    esbuildOptions: {
+      target: 'esnext',
+    },
+  },
+  build: {
+    target: 'esnext',
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+  },
   server: certExists ? {
     host: '0.0.0.0',
     port: 5173,
