@@ -100,16 +100,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: web/dist
+
+      - name: Download relay server
+        uses: actions/download-artifact@v4
+        with:
+          name: relay-server
+          path: server
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.19'
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          cache-dependency-path: server/go.sum
 
       - name: Install frontend dependencies
         working-directory: web
@@ -119,40 +125,43 @@ jobs:
         working-directory: web
         run: npx playwright install chromium --with-deps
 
+      - name: Install nginx
+        run: sudo apt-get update && sudo apt-get install -y nginx
+
       - name: Start Redis
         run: |
           docker run -d --name redis -p 6379:6379 redis:7-alpine
           sleep 2
 
-      - name: Build and start Go relay server
+      - name: Generate SSL certificates
+        run: |
+          sudo mkdir -p /etc/nginx/ssl
+          sudo openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout /etc/nginx/ssl/key.pem -out /etc/nginx/ssl/cert.pem \
+            -days 1 -subj "/CN=localhost"
+
+      - name: Setup nginx
+        run: |
+          sudo mkdir -p /var/www/html
+          sudo cp -r web/dist/* /var/www/html/
+          sudo cp nginx.conf /etc/nginx/nginx.conf
+          sudo nginx -t
+          sudo systemctl start nginx
+          sleep 2
+
+      - name: Start Go relay server
         working-directory: server
         run: |
-          go build -o relay cmd/relay/main.go
+          chmod +x relay
           ./relay &
           sleep 3
         env:
           PORT: 8080
           REDIS_ADDR: localhost:6379
 
-      - name: Generate SSL certificates
-        working-directory: web
-        run: |
-          mkdir -p .cert
-          openssl req -x509 -newkey rsa:2048 -nodes \
-            -keyout .cert/key.pem -out .cert/cert.pem \
-            -days 1 -subj "/CN=localhost"
-
-      - name: Start Vite dev server
-        working-directory: web
-        run: |
-          npm run dev &
-          sleep 8
-        env:
-          NODE_ENV: development
-
       - name: Wait for services
         run: |
-          timeout 30 bash -c 'until curl -k https://localhost:5173 > /dev/null 2>&1; do sleep 1; done'
+          timeout 30 bash -c 'until curl -k https://localhost > /dev/null 2>&1; do sleep 1; done'
           curl -s http://localhost:8080/health
 
       - name: Run smoke tests only
