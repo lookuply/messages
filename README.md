@@ -32,7 +32,6 @@ End-to-end encrypted messaging application with complete privacy. No phone numbe
 - **Redis 7** - Message queue storage
 
 ### Infrastructure
-- **Nginx** - Reverse proxy & SSL termination
 - **Docker Compose** - Container orchestration
 - **Playwright** - E2E testing
 
@@ -43,28 +42,28 @@ End-to-end encrypted messaging application with complete privacy. No phone numbe
 │   React PWA     │  (Client A)
 │  TweetNaCl E2E  │
 └────────┬────────┘
-         │ HTTPS/WSS
+         │ HTTP/WSS
          │
-    ┌────▼─────┐
-    │  Nginx   │  (Reverse Proxy)
-    └────┬─────┘
-         │
-    ┌────▼─────┐
-    │ Go Relay │  (Message Queue Server)
-    │  Server  │
-    └────┬─────┘
+    ┌────▼──────────┐
+    │  Go Server    │  (Unified Server)
+    │  • Static PWA │  - Serves frontend
+    │  • REST API   │  - Message queue API
+    │  • WebSocket  │  - Real-time updates
+    └────┬──────────┘
          │
     ┌────▼─────┐
     │  Redis   │  (Ephemeral Storage)
     └──────────┘
          │
-         │ HTTPS/WSS
+         │ HTTP/WSS
          │
 ┌────────▼────────┐
 │   React PWA     │  (Client B)
 │  TweetNaCl E2E  │
 └─────────────────┘
 ```
+
+**Note:** Production deployments should use external load balancer/reverse proxy (nginx, Traefik, Cloudflare) for SSL/TLS termination.
 
 ### Message Flow
 
@@ -95,8 +94,10 @@ cd messages
 docker-compose up -d
 
 # Access app
-open https://localhost
+open http://localhost
 ```
+
+The app runs on port 80 (HTTP). For production, use a reverse proxy (nginx, Traefik) for HTTPS.
 
 ### Development Setup
 
@@ -231,15 +232,32 @@ docker-compose logs -f
 docker-compose down
 ```
 
-### Nginx Configuration
+### Production Setup
 
-The app uses Nginx for:
-- HTTPS/TLS termination
-- Static file serving
-- Reverse proxy to Go server
-- WebSocket upgrade handling
+For production deployments:
 
-See `web/nginx.conf` for configuration.
+1. **SSL/TLS**: Use external reverse proxy (nginx, Traefik, Cloudflare)
+2. **Load Balancing**: Scale the Go server horizontally
+3. **Redis**: Use managed Redis service or Redis Cluster
+4. **Monitoring**: Add health checks and monitoring
+
+Example nginx reverse proxy config:
+```nginx
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://localhost:80;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+```
 
 ## API Endpoints
 
@@ -263,7 +281,8 @@ messages/
 │   ├── internal/
 │   │   ├── config/     # Configuration
 │   │   ├── queue/      # Message queue logic
-│   │   └── relay/      # HTTP/WebSocket server
+│   │   └── relay/      # HTTP/WebSocket + static file server
+│   ├── Dockerfile      # Multi-stage build (frontend + backend)
 │   └── go.mod
 ├── web/                 # React PWA
 │   ├── src/
@@ -275,7 +294,8 @@ messages/
 │   ├── tests/          # Playwright E2E tests
 │   ├── public/         # Static assets & PWA manifest
 │   └── package.json
-└── docker-compose.yml   # Container orchestration
+├── docker-compose.yml   # Container orchestration
+└── nginx.conf           # Reference config for production reverse proxy
 ```
 
 ## Contributing
