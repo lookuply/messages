@@ -26,14 +26,7 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: {
-    alias: {
-      // Fix libsodium-wrappers ESM issues
-      'libsodium-wrappers': 'libsodium-wrappers/dist/modules/libsodium-wrappers.js',
-    },
-  },
   optimizeDeps: {
-    exclude: ['libsodium-wrappers'],
     esbuildOptions: {
       target: 'esnext',
     },

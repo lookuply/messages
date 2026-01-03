@@ -15,7 +15,6 @@
   "dependencies": {
     "@tanstack/react-query": "^5.90.14",
     "dexie": "^4.2.1",
-    "libsodium-wrappers": "^0.7.15",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
