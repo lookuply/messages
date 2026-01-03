@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#1a1a1a" rx="64"/>
+
+  <!-- Lock/Shield Icon -->
+  <g transform="translate(256, 256)">
+    <!-- Shield shape -->
+    <path d="M -80 -120 L 80 -120 L 80 0 Q 80 80 0 120 Q -80 80 -80 0 Z"
+          fill="#2563eb"
+          stroke="#3b82f6"
+          stroke-width="4"/>
+
+    <!-- Lock -->
+    <g transform="translate(0, -20)">
+      <!-- Lock body -->
+      <rect x="-30" y="10" width="60" height="60" rx="8" fill="#1a1a1a"/>
+
+      <!-- Lock shackle -->
+      <path d="M -25 10 L -25 -10 Q -25 -35 0 -35 Q 25 -35 25 -10 L 25 10"
+            fill="none"
+            stroke="#1a1a1a"
+            stroke-width="12"
+            stroke-linecap="round"/>
+
+      <!-- Keyhole -->
+      <circle cx="0" cy="30" r="8" fill="#2563eb"/>
+      <rect x="-3" y="30" width="6" height="20" fill="#2563eb"/>
+    </g>
+  </g>
+</svg>
