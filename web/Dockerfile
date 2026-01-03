@@ -1,17 +1,30 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Production stage
 FROM nginx:alpine
 
-# Copy built static files
-COPY dist/ /usr/share/nginx/html/
+# Copy built static files from builder
+COPY --from=builder /app/dist/ /usr/share/nginx/html/
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration for Docker (HTTP only)
+COPY nginx.docker.conf /etc/nginx/conf.d/default.conf
 
-# Copy SSL certificates
-COPY .cert/cert.pem /etc/nginx/ssl/cert.pem
-COPY .cert/key.pem /etc/nginx/ssl/key.pem
-
-# Expose ports
-EXPOSE 80 443
+# Expose HTTP port only (HTTPS handled by external load balancer)
+EXPOSE 80
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
