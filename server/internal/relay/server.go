@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -66,6 +69,11 @@ func (s *Server) setupRoutes() {
 
 	// WebSocket endpoint
 	s.router.Get("/ws", s.handleWebSocket)
+
+	// Serve static files for SPA (must be last to not interfere with API routes)
+	workDir, _ := os.Getwd()
+	staticDir := http.Dir(filepath.Join(workDir, "static"))
+	s.serveSPA(staticDir)
 }
 
 // Start starts the HTTP server
@@ -336,6 +344,40 @@ func corsMiddleware(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+// serveSPA serves static files and falls back to index.html for SPA routing
+func (s *Server) serveSPA(staticDir http.FileSystem) {
+	// Create file server
+	fileServer := http.FileServer(staticDir)
+
+	// Serve static files with SPA fallback
+	s.router.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		// Don't serve static files for API routes
+		if strings.HasPrefix(r.URL.Path, "/queue") ||
+			strings.HasPrefix(r.URL.Path, "/ws") ||
+			strings.HasPrefix(r.URL.Path, "/health") {
+			http.NotFound(w, r)
+			return
+		}
+
+		// Try to serve the file
+		path := r.URL.Path
+		if path == "/" {
+			path = "/index.html"
+		}
+
+		// Check if file exists
+		f, err := staticDir.Open(path)
+		if err != nil {
+			// File not found, serve index.html for SPA routing
+			r.URL.Path = "/index.html"
+		} else {
+			f.Close()
+		}
+
+		fileServer.ServeHTTP(w, r)
 	})
 }
 
